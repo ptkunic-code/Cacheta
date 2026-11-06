@@ -1,6 +1,6 @@
 # Cacheta
 
-Cacheta para jogar no celular, contra o computador (e, em breve, online com os amigos).
+Cacheta para jogar no celular, contra o computador ou online com os amigos.
 
 **Jogar:** https://ptkunic-code.github.io/Cacheta/
 
@@ -21,5 +21,27 @@ Depois de instalado, abre em tela cheia e funciona sem internet.
 
 Quem aperta Bater sem fechar só pode bater comprando do monte até o fim da rodada. Quem fica a uma carta de bater é anunciado como **pifado**.
 
-## Próxima fase: online
-Sala por link, servidor que embaralha e valida as jogadas, emojis entre os jogadores e voz em conferência aberta (microfone liga/desliga, todos falam ao mesmo tempo).
+## Online com amigos
+Em **Nova mesa → Online com amigos**, você cria uma sala, escolhe as regras e manda o link (ou o código de 4 letras) no WhatsApp. Jogam de 2 a 4 pessoas de verdade, com as mesmas regras do modo contra o computador.
+
+- O **servidor** (`server/`) embaralha, confere cada jogada e manda para cada jogador só a própria mão. Ninguém vê as cartas dos outros.
+- Quem cai ou recarrega a página **volta para a mesma vaga**. Enquanto está fora, o servidor joga por ele quando o tempo acaba.
+- Emojis entre os jogadores já funcionam. A **voz em conferência** ainda não está disponível online.
+
+### Rodar o servidor no seu computador
+```bash
+cd server
+npm install
+npm start
+```
+Abra http://localhost:3000 (o servidor também entrega o jogo). Para testar com 2 jogadores, abra duas abas. `npm test` joga uma partida automática com 3 clientes.
+
+### Publicar o servidor (gratuito)
+O site continua no GitHub Pages. O servidor precisa de um lugar próprio:
+
+1. No [Render](https://render.com), crie um **Blueprint** apontando para este repositório (ele lê o `render.yaml`) ou um **Web Service** com *Root Directory* `server`, build `npm install` e start `npm start`.
+2. Copie o endereço que o Render der (ex.: `https://cacheta-online.onrender.com`) e coloque em `PROD_SERVER` no começo do bloco "online" do `index.html`, trocando `https` por `wss`:
+   `const PROD_SERVER='wss://cacheta-online.onrender.com';`
+3. Publique de novo e aumente a versão do cache em `sw.js`.
+
+No plano gratuito o servidor dorme depois de uns minutos parado. A primeira pessoa a abrir espera até 1 minuto. Um monitor gratuito (UptimeRobot) chamando `/health` a cada 5 minutos evita isso.
