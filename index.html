@@ -994,7 +994,7 @@ $('skinBox').addEventListener('click',e=>{if(e.target.id==='skinBox')$('skinBox'
 /* ---------- online ---------- */
 /* O servidor embaralha, confere cada jogada e manda para cada um só a própria mão.
    Aqui o cliente só desenha o estado recebido e manda as jogadas. */
-const PROD_SERVER='';   // endereço do servidor publicado, ex.: 'wss://cacheta-online.onrender.com'
+const PROD_SERVER='wss://cacheta-online.onrender.com';   // servidor publicado na Render
 const net={ws:null,code:null,token:null,name:'',queue:[],retry:0,want:false,you:0,m:null};
 function serverUrl(){
   const q=new URLSearchParams(location.search).get('server'); if(q) return q;
