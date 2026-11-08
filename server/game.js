@@ -22,7 +22,7 @@ function cleanCfg(c) {
     opps: 2, level: 'esperto',
     decks: num(c.decks, 1, 3, 2), jokers: num(c.jokers, 0, 8, 4),
     alvo: oneOf(+c.alvo, [0, 3, 5, 7, 10], 5), bate, dez2: !!c.dez2 && bate !== 'nove',
-    tempo: oneOf(+c.tempo, [0, 1, 2, 3, 5], 2), dicas: c.dicas !== false, limite: num(c.limite, 5, 30, 15),
+    tempo: oneOf(+c.tempo, [0, 1, 2, 3, 5], 2), dicas: c.dicas !== false, limite: num(c.limite, 5, 600, 15),
   };
 }
 
@@ -89,7 +89,7 @@ function bestDiscard(cards, excludeId) {
 }
 /* Pifado: a mão de 9 cartas bate com qualquer carta que faltar (testado com um curinga imaginário). */
 const PJ = { id: -999, j: true, r: 0, s: -1 };
-const isPifado = h => h.length === 9 && !!canBater([...h, PJ], null, PJ.id, 'ambos');
+const isPifado = (h, mode) => h.length === 9 && !!canBater([...h, PJ], null, PJ.id, mode || 'ambos');
 const sortByNaipe = h => h.sort((a, b) => (a.j ? 999 : a.s * 20 + a.r) - (b.j ? 999 : b.s * 20 + b.r));
 
 /* ---------- sala ---------- */
@@ -169,7 +169,7 @@ class Room {
     this.players.forEach(p => sortByNaipe(p.hand));
     this.turn = first; this.logEv = { k: 'deal', by: this.dealer };
     const pifs = [];
-    this.players.forEach((p, i) => { p.pifado = isPifado(p.hand); if (p.pifado) pifs.push(i); });
+    this.players.forEach((p, i) => { p.pifado = isPifado(p.hand, this.cfg.bate); if (p.pifado) pifs.push(i); });
     this.beginTurn(); this.broadcast();
     if (pifs.length) this.event({ t: 'pifado', who: pifs });
   }
@@ -233,7 +233,7 @@ class Room {
   }
   endTurn() {
     const by = this.turn, n = this.players.length, top = this.lixo[this.lixo.length - 1];
-    const now = isPifado(this.players[by].hand), novo = now && !this.players[by].pifado;
+    const now = isPifado(this.players[by].hand, this.cfg.bate), novo = now && !this.players[by].pifado;
     this.players[by].pifado = now;
     this.lastBy = by; this.windowCard = top ? top.id : null; this.windowMs = this.cfg.tempo * 1000;
     this.turn = (by + 1) % n; this.beginTurn(); this.broadcast();

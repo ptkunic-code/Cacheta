@@ -32,6 +32,17 @@ const wss = new WebSocketServer({ server, maxPayload: 8 * 1024 });
 const cleanName = s => String(s == null ? '' : s).replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 14) || 'Jogador';
 const send = (ws, o) => { if (ws.readyState === 1) ws.send(JSON.stringify(o)); };
 
+/* Conversa por voz: o servidor só repassa a sinalização (join/offer/answer/ice/bye); o áudio vai direto entre os aparelhos. */
+const RTC_KINDS = new Set(['join', 'offer', 'answer', 'ice', 'bye']);
+function relayRtc(room, p, m) {
+  if (!RTC_KINDS.has(m.k)) return;
+  const from = room.idx(p);
+  const out = { t: 'rtc', k: m.k, from, data: m.k === 'join' || m.k === 'bye' ? null : m.data };
+  if (out.data != null && JSON.stringify(out.data).length > 6000) return;
+  if (Number.isInteger(m.to)) { const q = room.players[m.to]; if (q && q !== p) room.send(q, out); return; }
+  room.players.forEach(q => { if (q !== p) room.send(q, out); });
+}
+
 function onMessage(ws, m) {
   if (!m || typeof m.t !== 'string') return;
   if (m.t === 'create') {
@@ -64,6 +75,7 @@ function onMessage(ws, m) {
     case 'order': return room.order(p, m.ids);
     case 'emoji': return room.emoji(p, m.e);
     case 'leave': return room.leave(p);
+    case 'rtc': return relayRtc(room, p, m);
   }
 }
 

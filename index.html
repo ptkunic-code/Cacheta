@@ -172,20 +172,27 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .janela i{display:block;height:100%;width:100%;background:var(--brass)}
 .burn{font-size:11px;font-weight:800;color:var(--on-accent);background:var(--warn);border-radius:999px;padding:2px 8px;white-space:nowrap}
 .timer{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--brass);font-variant-numeric:tabular-nums;flex:none}
-.tbar{width:44px;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
-.tbar i{display:block;height:100%;width:100%;background:var(--brass);transition:width .2s linear}
-.timer.low{color:var(--warn);animation:think .8s ease-in-out infinite}
+.tbar{width:84px;height:13px;border-radius:7px;background:var(--line);overflow:hidden}
+.tbar i{display:block;height:100%;width:100%;background:var(--brass);transition:width .2s linear,background-color .3s}
+.timer{--urg:0}
+.timer.low{color:var(--warn);animation:tremor calc(.5s - var(--urg)*.3s) linear infinite}
 .timer.low i{background:var(--warn)}
+@keyframes tremor{0%,100%{transform:translate(0,0)}20%{transform:translate(calc(-1px - var(--urg)*2px),1px)}40%{transform:translate(calc(1px + var(--urg)*2px),-1px)}60%{transform:translate(calc(-1px - var(--urg)*2px),-1px)}80%{transform:translate(calc(1px + var(--urg)*2px),1px)}}
 .range{display:inline-flex;align-items:center;gap:10px;flex:none}
 .range input{width:120px;accent-color:var(--brass)}
+.range input[type=number]{width:76px;padding:8px 6px;font:inherit;font-family:var(--f-display);font-size:20px;text-align:center;color:inherit;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:10px}
 .range output{font-family:var(--f-display);font-size:20px;min-width:3ch;text-align:right;font-variant-numeric:tabular-nums}
-.actions{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:8px}
+.range input[type=number]+output{font-size:14px;min-width:0;opacity:.8}
+.actions{display:grid;grid-template-columns:1fr 1.25fr;gap:8px}
 .actions button{border:0;border-radius:14px;padding:11px 6px;font-weight:800;font-size:15px;background:var(--ui);color:var(--ink);line-height:1.1}
 .actions button small{display:block;font-size:11px;font-weight:700;color:var(--muted)}
 .actions .primary{background:var(--paper);color:var(--black)}
-.actions .bater{background:var(--brass);color:var(--on-accent);font-family:var(--f-display);font-weight:400;font-size:19px;letter-spacing:.03em}
-.actions .bater.ready{animation:pulse 1s ease-in-out infinite}
-.actions .bater small{color:var(--on-accent);opacity:.75;font-family:var(--f-body);font-size:11px;letter-spacing:0}
+.bater{position:absolute;left:50%;bottom:6px;translate:-50% 0;z-index:6;min-width:150px;border:0;border-radius:16px;padding:10px 22px;line-height:1.1;
+  background:var(--brass);color:var(--on-accent);font-family:var(--f-display);font-weight:400;font-size:24px;letter-spacing:.04em;
+  box-shadow:0 0 0 3px rgba(255,255,255,.35),0 8px 20px var(--shade)}
+.bater:disabled{opacity:.5;box-shadow:0 4px 10px var(--shade)}
+.bater.ready{animation:pulse 1s ease-in-out infinite}
+.bater small{display:block;color:var(--on-accent);opacity:.75;font-family:var(--f-body);font-size:11px;font-weight:700;letter-spacing:0}
 
 /* folhas (overlays) */
 .overlay{position:fixed;inset:0;z-index:20;background:var(--scrim);display:grid;align-items:end;justify-items:center;
@@ -261,6 +268,15 @@ button:disabled{opacity:.4;cursor:not-allowed}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 @keyframes pop{from{translate:0 -34px;opacity:.2}to{translate:0 0;opacity:1}}
 @keyframes think{0%,100%{opacity:1}50%{opacity:.45}}
+/* celular deitado: mesa de um lado, status e mão do outro */
+@media (orientation:landscape) and (max-height:560px){
+  #app{max-width:none;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);grid-template-rows:auto 1fr auto;
+    grid-template-areas:"top top" "scene info" "scene me";column-gap:14px;row-gap:6px;padding-block:6px 8px}
+  .top{grid-area:top}.scene{grid-area:scene}.info{grid-area:info;align-self:center}.me{grid-area:me}
+  .brand b{font-size:22px}
+  .status{min-height:0}
+  .bater{font-size:20px;padding:7px 16px;min-width:120px}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -289,6 +305,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
       </div>
     </div></div>
     <div class="opps" id="opps" aria-label="Adversários"></div>
+    <button id="btnBater" class="bater" type="button">Bater!<small id="baterSub"></small></button>
     <div class="toast" id="toast" role="status" hidden></div>
   </section>
 
@@ -307,7 +324,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <div class="actions">
       <button id="btnSort" type="button">Ordenar<small id="sortMode">por valor</small></button>
       <button id="btnDiscard" class="primary" type="button">Descartar</button>
-      <button id="btnBater" class="bater" type="button">Bater!<small id="baterSub"></small></button>
     </div>
   </section>
 </div>
@@ -335,7 +351,10 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <div class="row"><div class="row-label"><b>Tempo entre jogadas</b><span>Janela para bater fora da vez</span></div>
       <div class="seg" data-key="tempo"><button type="button" data-val="0">0</button><button type="button" data-val="1">1s</button><button type="button" data-val="2">2s</button><button type="button" data-val="3">3s</button><button type="button" data-val="5">5s</button></div></div>
     <div class="row"><div class="row-label"><b>Tempo para jogar</b><span>Acabou, o app compra e descarta por você</span></div>
-      <div class="range"><input type="range" id="rgTempo" min="5" max="30" step="1" value="15" aria-label="Segundos para jogar"><output id="outLimite">15s</output></div></div>
+      <div class="range"><input type="number" inputmode="numeric" id="rgTempo" min="5" max="600" step="1" value="15" aria-label="Segundos para jogar"><output id="outLimite">segundos</output></div></div>
+    <div class="row"><div class="row-label"><b>Sons</b><span>Só neste aparelho. Toque para ouvir</span></div>
+      <div class="seg" id="segSom" role="group" aria-label="Sons">
+        <button type="button" data-som="classico" aria-pressed="true">Clássico</button><button type="button" data-som="madeira" aria-pressed="false">Madeira</button><button type="button" data-som="festa" aria-pressed="false">Festa</button><button type="button" data-som="off" aria-pressed="false">Sem som</button></div></div>
     <div class="row"><div class="row-label"><b>Dicas na mão</b><span>Marca os jogos e avisa quando dá pra bater</span></div>
       <button class="switch" type="button" role="switch" id="swDicas" aria-checked="true" aria-label="Dicas na mão"></button></div>
     <div class="row"><div class="row-label"><b>Pontos para ganhar</b><span id="alvoInfo">Quem chegar a 5 ganha a mesa</span></div>
@@ -520,6 +539,7 @@ function startRound(){
   sortHand(); S.turn=first; S.log=`Rodada ${S.round}. ${S.players[S.dealer].name==='Você'?'Você deu':S.players[S.dealer].name+' deu'} as cartas.`;
   S.players.forEach(p=>p.pifado=false);
   if(S.preview){S.phase='idle';S.status='';render();return}
+  Snd.play('shuffle');
   const pifs=S.players.map((p,k)=>k).filter(k=>(S.players[k].pifado=isPifado(S.players[k].hand)));
   if(pifs.length) setTimeout(()=>anunciaPifado(pifs),600);
   beginTurn();
@@ -544,6 +564,7 @@ function endTurn(){
   S.lastBy=by; S.windowCard=top?top.id:null;
   const N=(S.cfg.tempo||0)*1000; S.windowMs=S.players[next].bot?Math.max(750,N):N;
   S.turn=next; beginTurn();
+  if(by!==0) Snd.play(next===0?'mine':'others'); else if(next===0) Snd.play('mine');
   if(S.windowMs>0&&top){showJanela(S.windowMs);scheduleSnipes(top,S.windowMs)}
 }
 /* Computador batendo fora da vez com o descarte de outro jogador. */
@@ -585,7 +606,7 @@ async function botTurn(i){
   const src=take?$('lixoTop').lastElementChild:$('deckBtn').querySelector('.card'),chip=()=>document.querySelectorAll('#opps .opp')[i-1];
   let c;
   if(take){c=S.lixo.pop();S.takenId=c.id;if(S.lastBy===0&&Math.random()<.35) setTimeout(()=>react(i,'😋'),200)}else{c=drawFromDeck(); if(!c) return stalemate()}
-  const anim=fly(src,chip(),take?c:null,{sTo:.4,ms:850});
+  Snd.play('draw'); const anim=fly(src,chip(),take?c:null,{sTo:.4,ms:850});
   p.hand.push(c); S.phase='discard'; S.status=`${p.name} ${take?'pegou '+label(c)+' do lixo':'comprou do monte'}…`; render();
   await anim; await wait(420); if(tok!==S.token) return;
   const b=canBater(p.hand,null,S.takenId); if(b) return endRound(i,b);
@@ -606,10 +627,12 @@ function humanDraw(fromLixo){
   if(Date.now()<S.lockUntil) return say('Espere o tempo entre jogadas.',true);
   if(S.online){ if(fromLixo&&!S.lixo.length) return; return netSend({t:'draw',lixo:!!fromLixo}) }
   let c;
+  const src=fromLixo?$('lixoTop').lastElementChild:$('deckBtn').querySelector('.card');
   if(fromLixo){ if(!S.lixo.length) return; c=S.lixo.pop(); S.takenId=c.id; S.log=`Você pegou ${label(c)} do lixo.` }
   else { c=drawFromDeck(); if(!c) return stalemate(); S.log='Você comprou do monte.' }
   me().hand.push(c); ui.newId=c.id; ui.sel=null; S.phase='discard';
   S.status='Escolha uma carta para descartar ou bata.'; S.warn=false; render();
+  Snd.play('draw'); fly(src,$('hand'),fromLixo?c:null,{ms:450,sTo:.9});
 }
 function humanDiscard(){
   if(!myTurn('discard')) return;
@@ -618,7 +641,9 @@ function humanDiscard(){
   if(c.j) return say('Curinga não pode ser descartado.',true);
   if(c.id===S.takenId) return say('A carta que veio do lixo não pode voltar na mesma vez.',true);
   if(S.online){ ui.sel=null; return netSend({t:'discard',id:c.id}) }
+  const from=document.querySelector(`#hand .card[data-id="${c.id}"]`);
   me().hand=me().hand.filter(x=>x!==c); S.lixo.push(c); ui.sel=null; S.log=`Você descartou ${label(c)}.`; endTurn();
+  Snd.play('deal'); fly(from,$('lixoTop').lastElementChild||$('lixoTop'),c,{ms:450,sFrom:.9});
 }
 function oot(){
   if(!S||S.preview||S.phase!=='draw'||S.turn===0||me().out) return false;
@@ -697,13 +722,13 @@ function fichas(n){return `<b class="pts">${n}</b><span class="pts-of">${cfg.alv
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 /* Pifado: a mão de 9 cartas bate com qualquer carta que faltar (testado com um curinga imaginário). */
 const PJ={id:-999,j:true,r:0,s:-1},FEM={'Dona Cida':1};
-function isPifado(h){return h.length===9&&!!canBater([...h,PJ],null,PJ.id)}
+function isPifado(h){return h.length===9&&!!canBater([...h,PJ],null,PJ.id,(S&&S.cfg.bate)||'ambos')}
 function checkPifado(i){const p=S.players[i],now=isPifado(p.hand),novo=now&&!p.pifado;p.pifado=now;if(novo)anunciaPifado([i]);return novo}
 function anunciaPifado(list){
   const so=list.length===1,i0=list[0],nm=i=>S.players[i].name;
   const txt=so?(i0===0?'Pifado! Falta uma carta para você bater.':`${nm(i0)} está ${FEM[nm(i0)]?'pifada':'pifado'}!`)
     :`${list.map(i=>i===0?'Você':nm(i)).join(' e ')} estão pifados!`;
-  toast(txt);
+  toast(txt); Snd.play('pifa');
   list.forEach(i=>{if(i!==0&&Math.random()<.5) setTimeout(()=>react(i,'😏'),500)});
   const bots=S.players.map((p,k)=>k).filter(k=>S.players[k].bot&&!list.includes(k));
   if(bots.length&&Math.random()<.6) setTimeout(()=>react(pick(bots),'😬'),900);
@@ -718,7 +743,12 @@ function startTimer(keep){
 function stopTimer(){timerGen++;clearInterval(timerIv);$('timer').hidden=true}
 function tickTimer(){
   const lim=(S.cfg.limite||15)*1000,left=Math.max(0,S.deadline-Date.now());
-  $('timerTxt').textContent=Math.ceil(left/1000)+'s'; $('timerBar').style.width=(left/lim*100)+'%'; $('timer').classList.toggle('low',left<=5000);
+  const low=left<=15000,urg=low?1-left/15000:0,t=$('timer');
+  $('timerTxt').textContent=Math.ceil(left/1000)+'s'; $('timerBar').style.width=(left/lim*100)+'%';
+  t.classList.toggle('low',low); t.style.setProperty('--urg',urg.toFixed(2));
+  // fica vermelhando aos poucos: dourado -> vermelho
+  $('timerBar').style.backgroundColor=low?`color-mix(in srgb, var(--warn) ${Math.round(30+urg*70)}%, var(--brass))`:'';
+  if(low&&t._beep!==Math.ceil(left/1000)){t._beep=Math.ceil(left/1000); if(S&&S.turn===0&&left<=5000) Snd.play('tick')}
 }
 function timeUp(){
   if(!S||S.preview||S.online||S.turn!==0) return; // online, quem joga por você é o servidor
@@ -728,6 +758,35 @@ function timeUp(){
   if(!c) c=bestDiscard(h,S.takenId).card;
   ui.sel=c.id; humanDiscard(); S.log=`Tempo esgotado: o app jogou por você e descartou ${label(c)}.`; renderStatus();
 }
+/* Sons simulados (WebAudio, sem arquivos). 3 conjuntos, por aparelho. */
+const Snd=(()=>{
+  let ctx=null,set='classico',vol=.7;
+  try{set=localStorage.getItem('cacheta.som')||'classico'}catch(_){}
+  const ok=()=>{try{if(!ctx){const A=window.AudioContext||window.webkitAudioContext;if(!A)return false;ctx=new A()}if(ctx.state==='suspended')ctx.resume();return true}catch(_){return false}};
+  const tone=(f,d,{type='sine',g=.25,at=0,f2}={})=>{const t=ctx.currentTime+at,o=ctx.createOscillator(),a=ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
+    a.gain.setValueAtTime(0.0001,t);a.gain.exponentialRampToValueAtTime(g*vol,t+.01);a.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(a).connect(ctx.destination);o.start(t);o.stop(t+d+.02)};
+  const noise=(d,{g=.2,at=0,fq=2000,q=.8,type='bandpass'}={})=>{const t=ctx.currentTime+at,n=Math.floor(ctx.sampleRate*d),b=ctx.createBuffer(1,n,ctx.sampleRate),x=b.getChannelData(0);
+    for(let i=0;i<n;i++)x[i]=(Math.random()*2-1)*(1-i/n);const s=ctx.createBufferSource(),f=ctx.createBiquadFilter(),a=ctx.createGain();s.buffer=b;f.type=type;f.frequency.value=fq;f.Q.value=q;
+    a.gain.value=g*vol;s.connect(f).connect(a).connect(ctx.destination);s.start(t)};
+  const SETS={
+    classico:{deal:()=>noise(.12,{fq:3000,g:.3}),draw:()=>noise(.1,{fq:2200,g:.25}),shuffle:()=>{for(let i=0;i<9;i++)noise(.07,{at:i*.06,fq:2500+i*150,g:.18})},
+      pifa:()=>{tone(660,.15,{type:'triangle'});tone(880,.15,{at:.12,type:'triangle'});tone(1320,.3,{at:.24,type:'triangle'})},
+      others:()=>tone(330,.12,{type:'triangle',g:.2}),mine:()=>{tone(784,.14,{type:'sine'});tone(1047,.22,{at:.13,type:'sine'})},tick:()=>tone(1000,.05,{type:'square',g:.08})},
+    madeira:{deal:()=>{tone(180,.07,{type:'triangle',g:.4,f2:90});noise(.05,{fq:900,g:.2})},draw:()=>{tone(220,.06,{type:'triangle',g:.3,f2:120})},shuffle:()=>{for(let i=0;i<7;i++){tone(140+Math.random()*60,.06,{at:i*.08,type:'triangle',g:.25,f2:80});noise(.05,{at:i*.08,fq:1200,g:.1})}},
+      pifa:()=>{[0,.14,.28].forEach((a,i)=>tone(200+i*90,.2,{at:a,type:'triangle',g:.4,f2:120+i*50}))},
+      others:()=>tone(150,.1,{type:'triangle',g:.3,f2:90}),mine:()=>{tone(300,.1,{type:'triangle',g:.4,f2:200});tone(450,.18,{at:.12,type:'triangle',g:.4,f2:300})},tick:()=>tone(120,.05,{type:'triangle',g:.3})},
+    festa:{deal:()=>{noise(.08,{fq:4500,g:.25,type:'highpass'});tone(1200,.06,{type:'square',g:.06})},draw:()=>{noise(.07,{fq:3800,g:.2,type:'highpass'})},shuffle:()=>{for(let i=0;i<12;i++)noise(.05,{at:i*.045,fq:3500+(i%3)*500,g:.14,type:'highpass'})},
+      pifa:()=>{[523,659,784,1047,1319].forEach((f,i)=>tone(f,.14,{at:i*.07,type:'square',g:.1}))},
+      others:()=>tone(520,.09,{type:'square',g:.07}),mine:()=>{[784,988,1175].forEach((f,i)=>tone(f,.1,{at:i*.08,type:'square',g:.09}))},tick:()=>tone(1500,.04,{type:'square',g:.06})}
+  };
+  return {
+    get set(){return set},
+    setSet(s){set=s;try{localStorage.setItem('cacheta.som',s)}catch(_){}},
+    play(k){if(set==='off'||!SETS[set]||!SETS[set][k]||!ok())return;try{SETS[set][k]()}catch(_){}},
+    unlock(){ok()}
+  };
+})();
+document.addEventListener('pointerdown',()=>Snd.unlock(),{once:true});
 let toastT=0;
 function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true},2800)}
 /* Carta voando de um lugar da mesa para outro (monte/lixo ↔ adversário). */
@@ -811,7 +870,9 @@ function render(){
 
 function renderHand(){
   const handEl=$('hand'),h=me().hand,n=h.length,W=handEl.clientWidth||320;
-  const cw=Math.round(Math.max(48,Math.min(76,W/5.3)));
+  const deitado=window.innerWidth>window.innerHeight&&window.innerHeight<=560;
+  const cap=deitado?Math.max(38,Math.round((window.innerHeight*.36-44)/1.4)):76;
+  const cw=Math.round(Math.max(deitado?38:48,Math.min(cap,W/5.3)));
   handEl.style.setProperty('--cw',cw+'px'); handEl.style.height=(cw*1.4+44)+'px';
   // dicas de jogos formados (desligáveis na mesa)
   const dicas=S.cfg.dicas!==false,color=new Map(),gid=new Map(); let coverTxt='',go=false;
@@ -913,13 +974,13 @@ function openSetup(cancellable){
   $('setup').hidden=false;
 }
 function syncSetup(){
-  document.querySelectorAll('#setup .seg').forEach(seg=>{const k=seg.dataset.key;seg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(String(draft[k])===b.dataset.val)))});
+  document.querySelectorAll('#setup .seg[data-key]').forEach(seg=>{const k=seg.dataset.key;seg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(String(draft[k])===b.dataset.val)))});
   $('outDecks').textContent=draft.decks; $('outJokers').textContent=draft.jokers;
   $('deckInfo').textContent=`${draft.decks*52+draft.jokers} cartas no monte, com curingas`;
   $('swDez').setAttribute('aria-checked',String(draft.dez2));
   $('swDez').disabled=draft.bate==='nove';
   $('swDicas').setAttribute('aria-checked',String(draft.dicas!==false));
-  $('rgTempo').value=draft.limite||15; $('outLimite').textContent=(draft.limite||15)+'s';
+  $('rgTempo').value=draft.limite||15; $('outLimite').textContent='segundos';
   $('alvoInfo').textContent=draft.alvo?`Quem chegar a ${draft.alvo} ganha a mesa`:'Sem limite: joguem quanto quiserem';
   $('bateInfo').textContent={ambos:'Com 9 (descartando uma) ou com 10',dez:'Só vale fechar as 10 cartas',nove:'Sempre fecha 9 e descarta a décima'}[draft.bate];
   const pv=$('jkPreview'); pv.innerHTML='';
@@ -928,7 +989,7 @@ function syncSetup(){
   document.querySelectorAll('#setup .stepper').forEach(st=>{const k=st.dataset.key,[mi,ma]=[+st.dataset.min,+st.dataset.max];
     st.querySelector('[data-step="-1"]').disabled=draft[k]<=mi; st.querySelector('[data-step="1"]').disabled=draft[k]>=ma});
 }
-document.querySelectorAll('#setup .seg').forEach(seg=>seg.addEventListener('click',e=>{
+document.querySelectorAll('#setup .seg[data-key]').forEach(seg=>seg.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return; const k=seg.dataset.key,v=b.dataset.val;
   draft[k]=isNaN(+v)?v:+v; syncSetup();
 }));
@@ -936,17 +997,87 @@ document.querySelectorAll('#setup .stepper').forEach(st=>st.addEventListener('cl
   const b=e.target.closest('button'); if(!b) return; const k=st.dataset.key;
   draft[k]=Math.max(+st.dataset.min,Math.min(+st.dataset.max,draft[k]+(+b.dataset.step))); syncSetup();
 }));
+function syncSom(){document.querySelectorAll('#segSom button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.som===Snd.set)))}
+$('segSom').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.setSet(b.dataset.som);syncSom();
+  Snd.play('shuffle');setTimeout(()=>Snd.play('deal'),600);setTimeout(()=>Snd.play('mine'),800);setTimeout(()=>Snd.play('pifa'),1100)});
+syncSom();
 $('swDez').onclick=()=>{draft.dez2=!draft.dez2;syncSetup()};
-$('rgTempo').addEventListener('input',e=>{draft.limite=+e.target.value;$('outLimite').textContent=draft.limite+'s'});
+$('rgTempo').addEventListener('input',e=>{const v=Math.round(+e.target.value);if(v>=5&&v<=600)draft.limite=v});
+$('rgTempo').addEventListener('change',e=>{const v=Math.max(5,Math.min(600,Math.round(+e.target.value)||15));draft.limite=v;e.target.value=v});
 $('btnEmoji').onclick=e=>{e.stopPropagation();const t=$('tray');t.hidden=!t.hidden;$('btnEmoji').setAttribute('aria-expanded',String(!t.hidden))};
 $('tray').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!S)return;$('tray').hidden=true;$('btnEmoji').setAttribute('aria-expanded','false');
   if(S.online) return netSend({t:'emoji',e:b.textContent}); // volta para todos, inclusive para você
   react(0,b.textContent);botReply()});
 document.addEventListener('click',e=>{const t=$('tray');if(!t.hidden&&!t.contains(e.target)&&e.target!==$('btnEmoji')){t.hidden=true;$('btnEmoji').setAttribute('aria-expanded','false')}});
-$('btnMic').onclick=()=>{
+/* Conferência por voz (online): cada aparelho liga direto nos outros (WebRTC). O servidor só repassa os "recados" de ligação.
+   Sem servidor TURN, em algumas redes (ex.: alguns 4G) a ligação pode não fechar. */
+const Voz={on:false,stream:null,peers:new Map(),pend:new Map(),
+  cfg:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]},
+  async start(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('nomic');
+    this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+    this.on=true; netSend({t:'rtc',k:'join'});
+  },
+  mute(m){if(this.stream) this.stream.getAudioTracks().forEach(t=>{t.enabled=!m})},
+  stop(){
+    if(this.on) netSend({t:'rtc',k:'bye'});
+    this.on=false; this.peers.forEach((_,id)=>this.drop(id)); this.pend.clear();
+    if(this.stream){this.stream.getTracks().forEach(t=>t.stop());this.stream=null}
+  },
+  drop(id){
+    const p=this.peers.get(id); if(!p) return;
+    try{p.pc.close()}catch(_){} if(p.au){p.au.srcObject=null;p.au.remove()} this.peers.delete(id);
+  },
+  mk(id){
+    this.drop(id);
+    const pc=new RTCPeerConnection(this.cfg), au=document.createElement('audio'); au.autoplay=true; au.hidden=true; document.body.appendChild(au);
+    const p={pc,au}; this.peers.set(id,p);
+    this.stream.getTracks().forEach(t=>pc.addTrack(t,this.stream));
+    pc.onicecandidate=e=>{if(e.candidate) netSend({t:'rtc',k:'ice',to:id,data:e.candidate.toJSON()})};
+    pc.ontrack=e=>{au.srcObject=e.streams[0]; const pl=au.play(); if(pl&&pl.catch) pl.catch(()=>{})};
+    pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed'&&this.on) flash('Não consegui ligar a voz com um jogador (a rede dele pode bloquear).',true,5000)};
+    return p;
+  },
+  async onMsg(m){
+    const id=m.from;
+    if(m.k==='bye'){this.drop(id);return}
+    if(!this.on) return;
+    try{
+      if(m.k==='join'){ // quem já está na conversa liga para o recém-chegado
+        const p=this.mk(id); const o=await p.pc.createOffer(); await p.pc.setLocalDescription(o);
+        netSend({t:'rtc',k:'offer',to:id,data:{type:o.type,sdp:o.sdp}});
+      }else if(m.k==='offer'){
+        const p=this.mk(id); await p.pc.setRemoteDescription(m.data);
+        const a=await p.pc.createAnswer(); await p.pc.setLocalDescription(a);
+        netSend({t:'rtc',k:'answer',to:id,data:{type:a.type,sdp:a.sdp}});
+        this.flush(id);
+      }else if(m.k==='answer'){
+        const p=this.peers.get(id); if(p){await p.pc.setRemoteDescription(m.data);this.flush(id)}
+      }else if(m.k==='ice'){
+        const p=this.peers.get(id);
+        if(p&&p.pc.remoteDescription) await p.pc.addIceCandidate(m.data);
+        else{if(!this.pend.has(id)) this.pend.set(id,[]); this.pend.get(id).push(m.data)}
+      }
+    }catch(_){}
+  },
+  flush(id){
+    const p=this.peers.get(id), l=this.pend.get(id); this.pend.delete(id);
+    if(p&&l) l.forEach(c=>p.pc.addIceCandidate(c).catch(()=>{}));
+  }
+};
+$('btnMic').onclick=async()=>{
   if(!S) return;
-  if(S.online) return say('A conversa por voz ainda não está disponível online.',true);
-  ui.mic=!ui.mic; const b=$('btnMic');
+  const b=$('btnMic');
+  if(S.online){
+    try{
+      if(!Voz.on){ await Voz.start(); ui.mic=true;
+        say('Conversa por voz ligada. Todos que ligarem o microfone podem falar ao mesmo tempo. Se alguém não ouvir, a rede pode estar bloqueando.');
+      }else{ ui.mic=!ui.mic; Voz.mute(!ui.mic); say(ui.mic?'Microfone ligado.':'Microfone mudo. Você ainda ouve os outros.'); }
+    }catch(e){ ui.mic=false; Voz.stop(); say(e&&e.message==='nomic'?'Este aparelho não deixa usar o microfone aqui.':'Não consegui abrir o microfone. Confira a permissão do navegador.',true); }
+    b.setAttribute('aria-pressed',String(!!ui.mic)); b.setAttribute('aria-label',ui.mic?'Silenciar microfone':'Ligar microfone');
+    return;
+  }
+  ui.mic=!ui.mic;
   b.setAttribute('aria-pressed',String(ui.mic)); b.setAttribute('aria-label',ui.mic?'Desligar microfone':'Ligar microfone');
   say(ui.mic?'Microfone ligado. No modo online a mesa toda te ouve, e todos podem falar ao mesmo tempo.':'Microfone desligado.');
 };
@@ -1044,6 +1175,7 @@ function onNet(m){
       $('setup').hidden=true;$('joinBox').hidden=true; break;
     case 'state': applyOnline(m); break;
     case 'emoji': if(S&&S.online) react((m.from-net.you+S.players.length)%S.players.length,m.e); break;
+    case 'rtc': Voz.onMsg(m); break;
     case 'pifado': if(S&&S.online) onlinePifado(m.who); break;
     case 'msg': flash(m.text,m.warn); break;
     case 'err':
@@ -1065,6 +1197,7 @@ function onlineStatus(){
 }
 function onlinePifado(who){
   const n=S.players.length,names=who.map(s=>{const i=(s-net.you+n)%n;return i===0?'Você':S.players[i].name});
+  Snd.play('pifa');
   toast(who.length===1?(names[0]==='Você'?'Pifado! Falta uma carta para você bater.':`${names[0]} está pifado!`):`${names.join(' e ')} estão pifados!`);
 }
 function syncOrder(){if(S&&S.online&&!S.preview) netSend({t:'order',ids:me().hand.map(c=>c.id)})}
@@ -1082,7 +1215,20 @@ function applyOnline(m){
   S={online:true,cfg:m.cfg,preview:lobby,token:0,round:m.round,dealer:0,deck:new Array(m.deckCount),lixo:m.lixo,
      turn:v(m.turn),phase:lobby?'idle':(m.phase==='play'?m.tphase:'roundEnd'),takenId:m.takenId,status:'',warn:false,log:m.log,players,
      lastBy:m.lastBy<0?-1:v(m.lastBy),windowCard:m.windowCard,windowMs:0,lockUntil:Date.now()+m.lockLeft,deadline:Date.now()+m.deadlineLeft};
+  const oldTop=prev&&prev.lixo.length?prev.lixo[prev.lixo.length-1].id:null,newTop=m.lixo.length?m.lixo[m.lixo.length-1].id:null;
+  const oldHand=prev?prev.players[0].hand.map(c=>c.id):[],handSrc=(prev&&prev.round===m.round)?$('hand'):null;
+  const lostId=handSrc?oldHand.find(id=>!m.hand.some(c=>c.id===id)):undefined;
+  const lostCard=lostId!=null?prev.players[0].hand.find(c=>c.id===lostId):null;
   onlineStatus(); render();
+  if(!lobby&&prev&&prev.round===m.round){
+    const mineNow=S.turn===0&&prev.turn!==0&&S.phase==='draw';
+    if(ui.newId!=null){
+      const fromLixo=prev.lixo.length>m.lixo.length;
+      Snd.play('draw'); fly(fromLixo?$('lixoTop'):$('deckBtn'),$('hand'),null,{ms:450,sTo:.9});
+    } else if(lostCard){Snd.play('deal');fly(handSrc,$('lixoTop').lastElementChild||$('lixoTop'),lostCard,{ms:450,sFrom:.9})}
+    else if(newTop!==oldTop&&S.turn!==prev.turn&&!mineNow) Snd.play('others');
+    if(mineNow) setTimeout(()=>Snd.play('mine'),120);
+  } else if(!lobby&&(!prev||prev.round!==m.round)&&m.phase==='play') Snd.play('shuffle');
   if(lobby) $('roundInfo').textContent=`Sala ${m.code} · esperando jogadores`;
   // janela para bater fora da vez: abre uma vez por descarte
   if(S.phase==='draw'&&m.windowCard!=null&&m.windowCard!==ui.winShown&&m.lockLeft>0){ui.winShown=m.windowCard;showJanela(m.lockLeft)}
@@ -1141,6 +1287,7 @@ function showRoundEndOnline(m){
   $('btnNext').textContent=can?(r.over?'Nova mesa':'Próxima rodada'):`Esperando ${m.players[m.host].name}…`;
 }
 function dropOnline(){
+  Voz.stop(); ui.mic=false; $('btnMic').setAttribute('aria-pressed','false');
   net.want=false; net.code=net.token=null; net.queue=[]; net.retry=0; clearSession();
   const ws=net.ws; net.ws=null; if(ws){try{ws.close()}catch(_){}}
   clearTimeout(ui.tTO); stopTimer(); hideJanela();
