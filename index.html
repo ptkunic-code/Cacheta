@@ -540,9 +540,7 @@ function startRound(){
   S.players.forEach(p=>p.pifado=false);
   if(S.preview){S.phase='idle';S.status='';render();return}
   Snd.play('shuffle');
-  const pifs=S.players.map((p,k)=>k).filter(k=>(S.players[k].pifado=isPifado(S.players[k].hand)));
-  if(pifs.length) setTimeout(()=>anunciaPifado(pifs),600);
-  beginTurn();
+  beginTurn(); /* pifado só é anunciado depois de um descarte, nunca na hora de dar as cartas */
 }
 function beginTurn(){
   S.phase='draw'; S.takenId=null; ui.newId=null;
@@ -1349,6 +1347,13 @@ function boot(){
 boot();
 </script>
 <script>
+/* Tela sempre acesa enquanto o jogo está aberto (sem isso o celular apaga a tela em ~2 min). */
+(function(){let lk=null;
+  async function pede(){try{if(!('wakeLock' in navigator)||document.hidden||lk)return;lk=await navigator.wakeLock.request('screen');lk.addEventListener('release',()=>{lk=null})}catch(_){lk=null}}
+  ['pointerdown','keydown','touchstart'].forEach(e=>addEventListener(e,pede,{passive:true}));
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)pede()});
+  setInterval(pede,30000);pede();
+})();
 if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
 </script>
 </body>

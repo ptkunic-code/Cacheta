@@ -168,10 +168,8 @@ class Room {
     this.lixo.push(this.deck.splice(t, 1)[0]);
     this.players.forEach(p => sortByNaipe(p.hand));
     this.turn = first; this.logEv = { k: 'deal', by: this.dealer };
-    const pifs = [];
-    this.players.forEach((p, i) => { p.pifado = isPifado(p.hand, this.cfg.bate); if (p.pifado) pifs.push(i); });
+    /* pifado só é anunciado depois de um descarte, nunca na hora de dar as cartas */
     this.beginTurn(); this.broadcast();
-    if (pifs.length) this.event({ t: 'pifado', who: pifs });
   }
   beginTurn() {
     this.tphase = 'draw'; this.takenId = null;
